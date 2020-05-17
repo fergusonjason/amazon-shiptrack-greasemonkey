@@ -4,45 +4,54 @@
 // @version      0.1
 // @description  Add a link on the tracking number that redirects to the carrier's tracking website
 // @author       shengbi@
+// @author			 Jason Ferguson
 // @match        https://www.amazon.com/gp/your-account/ship-track/*
+// @match        https://*.amazon.com/progress-tracker/package/*
 // @require      http://code.jquery.com/jquery-latest.js
 // ==/UserScript==
 
 (function() {
     'use strict';
 
-    var ele = $("div .ship-track-grid-subtext");
-    if (!ele) return;
-    var text = ele[0].innerHTML.trim();
+  	const ele = $("#carrierRelatedInfo-container");
 
-    // Get carrier's name
-    var carrierName = getCarrierName(text);
-    console.log("carrier name: " + carrierName);
-    // Get tracking number
-    var trackingNumber = getTrackingNumber(text);
-    console.log("tracking number: " + trackingNumber);
-    
-    // Get tracking website's URL
-    var url = getTrackingWebsiteURL(carrierName, trackingNumber);
+  	// use elements to find the particular lines. Slightly more brute force than the original
+    const shippingEle = ele.find("h1");
+    const shippingLine = shippingEle.text();
+    const trackingEle = ele.find("h4");
+  	const trackingLine = trackingEle.text();
+  
+  	// Use regular expressions to finder the shipper and tracking ID. MUCH more brute force than the original
+  	let shippingRegexp = /Shipped with ([A-Za-z0-9]+)/;
+  	let shipper = shippingLine.match(shippingRegexp)[1];
+  
+
+    const trackingRegexp = /Tracking ID: ([0-9]+)/;
+    let tracking = trackingLine.match(trackingRegexp)[1];
+
+    const url = getTrackingWebsiteURL(shipper, tracking);
     if (url) {
-        ele.wrap("<a target='_blank' href='" + url + "'></a>");
+      	// TODO: Only wrap the tracking number itself
+        trackingEle.wrap("<a target='_blank' href='" + url + "'></a>");
     }
 
     function getCarrierName(text) {
-        var index1 = text.indexOf(":") + 1;
-        var index2 = text.indexOf(",");
-        var carrier = text.substring(index1, index2).trim();
+        let index1 = text.indexOf(":") + 1;
+        let index2 = text.indexOf(",");
+        let carrier = text.substring(index1, index2).trim();
         switch(carrier) {
             case "UPS Mail Innovations":
-                return "USPS";
-            default:
-                return carrier;
+                carrier = "USPS";
         }
+
+
+        return carrier;
     }
     
     function getTrackingNumber(text) {
-        var index1 = text.lastIndexOf(":") + 1;
-        var tracking = text.substr(index1).trim();
+        let index1 = text.lastIndexOf(":") + 1;
+        let tracking = text.substr(index1).trim();
+
         return tracking;
     }
     
